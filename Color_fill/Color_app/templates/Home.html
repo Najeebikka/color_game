@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Color Mixing Game</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        const csrftoken = getCookie('csrftoken');
+
+        $(document).ready(function() {
+            let selectedColor = ''; // Default color is empty
+
+            // Handle color button clicks
+            $('.submitButton').click(function() {
+                selectedColor = $(this).data('color');
+                $('#color-name').text('Selected Color: ' + selectedColor);
+            });
+
+            // Handle container clicks
+            $('.clickableDiv').click(function() {
+                if (!selectedColor) {
+                    alert('Please select a color first.');
+                    return;
+                }
+
+                const divId = $(this).attr('id');
+
+                $.ajax({
+                    url: '/update-color/',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        'div_id': divId,
+                        'color_name': selectedColor,
+                        'csrfmiddlewaretoken': csrftoken
+                    }),
+                    success: function(response) {
+                        $('#' + divId).css('background', response.combined_color);
+                        $('#' + divId).find('.color-name').text(response.combined_color);
+                    },
+                    error: function(response) {
+                        alert('Error submitting data');
+                    }
+                });
+            });
+
+            // Handle reset button click
+            $('#reset').click(function() {
+                $.ajax({
+                    url: '/reset-colors/',
+                    type: 'POST',
+                    data: {
+                        'csrfmiddlewaretoken': csrftoken
+                    },
+                    success: function(response) {
+                        if (response.status === 'success') {
+                            $('.clickableDiv').css('background', 'white');
+                            $('.clickableDiv .color-name').text('');
+                            $('#color-name').text('Choose any color');
+                        } else {
+                            alert('Error resetting colors');
+                        }
+                    },
+                    error: function(response) {
+                        alert('Error resetting colors');
+                    }
+                });
+            });
+        });
+    </script>
+</head>
+<body>
+    <div id="game">
+        <div id="containers">
+        {% for container in containers %}
+        <div class="clickableDiv" id="{{ container.div_id }}" style="background: {{ container.combined_color }}"> {{ forloop. }}</div>
+        {% empty %}
+            <div class="clickableDiv" id="div1" style="background-color: white;" data-value="white"></div>
+            <div class="clickableDiv" id="div2" style="background-color: white;" data-value="white"></div>
+            <div class="clickableDiv" id="div3" style="background-color: white;" data-value="white"></div>
+        {% endfor %}
+        </div>
+        <div id="palette">
+                <input type="submit" value="" class="submitButton" style="background-color: red;" data-color="red" name="color"></button>
+                <input type="submit" value="" class="submitButton" style="background-color: blue;" data-color="blue" name="color"></button>
+                <input type="submit" value="" class="submitButton" style="background-color: green;" data-color="green" name="color"></button>
+                <input type="submit" value="" class="submitButton" style="background-color: yellow;" data-color="yellow" name="color"></button>
+                <input type="submit" value="" class="submitButton" style="background-color: purple;" data-color="purple" name="color"></button>
+                <input type="submit" value="" class="submitButton" style="background-color: orange;" data-color="orange" name="color"></button>
+        </div>
+        <button id="reset" >Reset</button>
+        <div id="info">
+            <p id="color-name">Select a color to fill a container.</p>
+        </div>
+    </div>
+    <script src="/static/js/script.js"></script>
+</body>
+</html>
